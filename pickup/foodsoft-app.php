@@ -32,6 +32,7 @@ class FoodsoftApp
     public $articles_distribution_received = [];
     public $article_distribution_notes = [];
     public $article_notes = [];
+    public $article_grouporder_ids = [];
     public $locked_weight_tags;
     public $base_distribution = 10000;
     public $base_pickedup = 1000;
@@ -321,10 +322,16 @@ class FoodsoftApp
                 $this->articles_pickedup[$id] = [
                     "pickedup" => $entry["pickedup"],
                     "date" => $entry["date"] ?? null,
+                    "ordered" => $entry["ordered"] ?? 0,
+                    "received" => $entry["received"] ?? 0,
+                    "weight_received" => $entry["weight_received"] ?? 0,
                 ];
             }
             if (isset($entry["note"])) {
                 $this->article_notes[$id] = $entry["note"];
+            }
+            if (isset($entry["grouporder_article_id"])) {
+                $this->article_grouporder_ids[$entry["grouporder_article_id"]][] = $id;
             }
         }
     }
@@ -471,7 +478,7 @@ class FoodsoftApp
         $this->html_debug_begin();
 
         $data = [];
-        for ($week = $this->n_weeks - 1; $week >= 0; $week--) {
+        for ($week = $this->n_weeks; $week >= 0; $week--) {
             $filename = $this->data_filename($app_name, $dir, $week, $include_ordergroup);
             if ($include_ordergroup === "all") {
                 // load files from all ordergroups
