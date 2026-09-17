@@ -114,6 +114,36 @@ class ArticleDistribute extends Article
         return $input->get_id();
     }
 
+    public function html_article_notes()
+    {
+        $this->html_note_for_balancing(
+            "Notiz fürs Abrechnen",
+            "Hinweis fürs Abrechnen, wenn z.B. am Lieferschein etwas nicht korrekt ist (geht nicht an Besteller*innen):"
+        );
+
+        if ($this->n_grouporders > 1) {
+            $this->html_note_for_all(
+                "Notiz für alle eingeben",
+                "Hinweis an alle, die diesen Artikel bestellt haben:"
+            );
+        }
+    }
+
+    public function html_note_for_all($button, $text)
+    {
+        print "<p>";
+        $this->html_note($button, $text, true, false);
+        print "</p>";
+    }
+
+    public function html_note_for_balancing($button, $text)
+    {
+        print "<p>";
+        $this->html_note($button, $text, true, true);
+        print "</p>";
+    }
+
+
     public function html_buttons($input_id)
     {
         if ($this->n_grouporders > 1) {
@@ -169,6 +199,7 @@ class ArticleDistribute extends Article
                 $input = new form_input();
                 $input->add_class("article-$this->id");
                 $input->set_data_attribute("article-id", $this->id);
+                $input->set_data_attribute("order-id", $this->order->id);
                 $input->add_update_function("ajaxOnChange(this);");
                 $input->add_update_function("update_received(this);");
                 $input->set_buttons_on_both_sides();
@@ -176,6 +207,7 @@ class ArticleDistribute extends Article
                     $input->set_name("weight_received_grouporder[$id]");
                     $input->set_init_value($weight_received);
                     $input->set_data_attribute("received", $weight_received);
+                    $input->set_data_attribute("unit_weight", $this->unit_weight);
                     $input->add_class("weight");
                     $weight_received = $input->html();
                 } else {
@@ -201,7 +233,7 @@ class ArticleDistribute extends Article
                 "weight_ordered" => $grouporder["weight_ordered"] ?? "",
                 "weight_received" => $weight_received,
                 "group_name" => $grouporder["name"],
-                "note" => $this->html_grouporder_note($id)
+                "note" => $this->html_grouporder_note($id, $grouporder["name"])
             ];
 
         }
@@ -217,11 +249,11 @@ class ArticleDistribute extends Article
     }
 
 
-    private function html_grouporder_note($id)
+    private function html_grouporder_note($id, $ordergroup)
     {
         $grouporder_id = "grouporder-$id";
         return html_button(
-            html_tag("img", ["src" => "../icons/notiz.png"]), //"Notiz", // "Notiz eingeben"
+            html_tag("img", ["src" => "../images/notiz.png"]), //"Notiz", // "Notiz eingeben"
             "note-button-show-$grouporder_id",
             "show_note('$grouporder_id', true)"
         ) .
@@ -236,6 +268,11 @@ class ArticleDistribute extends Article
                     "name" => "note_grouporder[$id]",
                     "rows" => 3,
                     "cols" => 28,
+                    "data-id" => $grouporder_id,
+                    "data-order-id" => $this->order->id,
+                    "data-article-name" => $this->name,
+                    "data-ordergroup" => $ordergroup,
+                    "onchange" => "ajaxOnChange(this);",
                 ], "") .
                 "<br>" .
                 html_button(

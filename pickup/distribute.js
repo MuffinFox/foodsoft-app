@@ -174,22 +174,24 @@ function page_log(text) {
 function ajaxOnChange(element) {
     const xmlhttp = new XMLHttpRequest();
     let value = "";
-    const grouporder_ids = [];
+
+    let add_grouporder_ids = false;
+    console.log("   tag:" + element.tagName + " element type: " + element.type + ", value: " + element.value);
     if (element.type == "checkbox") {
         value = element.checked; // ? true : false);
-    } else { // element.type == "input"
+        console.log("   element type: " + element.type + ", checked: " + value);
+    } else if (element.type == "number") {
         value = Number(element.value);
-        // console.log("   element type: " + element.type + ", value: " + value);
-        if (!element.id.includes("grouporder")) { // input-weight_received-218962, input-received-218962
-            // determine grouporder_ids of input elements for individual ordergroups
-            const article_id = id_article(element);
-            for (const e of document.getElementsByClassName("article-" + article_id)) {
-                // id: input-weight_received_grouporder-2619460
-                grouporder_ids.push(Number(id_grouporder_article(e)));
-            }
-            console.log("  grouporder_ids with article-" + article_id + ": " + grouporder_ids);
-        }
+        console.log("   element type: " + element.type + ", value: " + value);
+        add_grouporder_ids = !element.id.includes("grouporder");
+    } else if (element.type == "textarea") {
+        value = element.value;
+        console.log("   element type: " + element.type + ", value: " + value);
+        add_grouporder_ids = !element.id.includes("grouporder") && !element.id.includes("balancing");
+    } else {
+        console.log("   unknown element type: " + element.type + ", value: " + value);
     }
+
     const data = {
         date: currentDateAndTimeString(),
         session_id: window.my_session_id,
@@ -197,8 +199,29 @@ function ajaxOnChange(element) {
         element_id: element.id,
         value: value,
     };
-    if (grouporder_ids.length)
-        data.grouporder_ids = grouporder_ids;
+
+    const order_id = get_data(element, "order-id");
+    if (order_id) data.order_id = order_id;
+
+    const article_name = get_data(element, "article-name");
+    if (article_name) data.article_name = article_name;
+
+    const unit_weight = get_data(element, "unit_weight");
+    if (unit_weight) data.received = value / unit_weight;
+
+    const ordergroup = get_data(element, "ordergroup");
+    if (ordergroup) data.ordergroup = ordergroup;
+
+    if (add_grouporder_ids) {
+        // deterorder_idine grouporder_ids of input elements for individual ordergroups
+        data.grouporder_ids = [];
+        const article_id = id_article(element);
+        for (const e of document.getElementsByClassName("article-" + article_id)) {
+            // id: input-weight_received_grouporder-2619460
+            data.grouporder_ids.push(Number(id_grouporder_article(e)));
+        }
+        console.log("  grouporder_ids with article-" + article_id + ": " + data.grouporder_ids);
+    }
 
     let url = "?" +
         [
@@ -224,6 +247,38 @@ function ajaxOnChange(element) {
     };
     xmlhttp.send();
 }
+
+function save_changes() {
+    const xmlhttp = new XMLHttpRequest();
+    const data = {
+        date: currentDateAndTimeString(),
+        session_id: window.my_session_id,
+        username: window.username,
+        save: true,
+    };
+    const params = new URLSearchParams(window.location.search);
+    const access_token = params.get("access_token");
+    const url = "?" +
+        [
+            "app=distribute",
+            "action=ajax-save",
+            "ajax-data=" + JSON.stringify(data),
+            "access_token=" + access_token,
+        ].join("&");
+    // console.log("save url: " + url);
+    xmlhttp.open("GET", url, true);
+    xmlhttp.onreadystatechange = function () {
+        // check if the request is complete
+        if (xmlhttp.readyState === 4) {
+            if (xmlhttp.status === 200) {
+                // Request was successful
+                console.log("save: " + xmlhttp.responseText + "\n");
+            }
+        }
+    };
+    xmlhttp.send();
+}
+
 
 
 function sleep(ms) {
@@ -272,26 +327,27 @@ function start_update(username, ajax_timeout) {
     window.username = username;
     window.ajax_timeout = ajax_timeout;
 
+    load_events(null, -1); // events from previous weeks, excluding current
+    window.n_ajax_events = 0;
+    load_events(null, 0); // events from current week, sets window.n_ajax_events
 
-    xmlhttp = new XMLHttpRequest()
+    const xmlhttp = new XMLHttpRequest()
     xmlhttp.onreadystatechange = function () {
         page_log(xmlhttp.readyState + "r ");
+        // console.log("onreadystatechange: " + xmlhttp.readyState);
         if (xmlhttp.readyState == 4) {
             if (xmlhttp.status == 200) {
                 window.unprocessed_response = true;
                 page_log("Success: " + xmlhttp.responseText + "\n");
+                // console.log("onreadystatechange: process_ajax_response: " + xmlhttp.responseText + "\n");
                 process_ajax_response(xmlhttp.responseText, window.my_session_id);
             } else {
                 // Request failed
+                // console.log("onreadystatechange: error: status" + xmlhttp.status + " " + xmlhttp.statusText + "\n");
                 page_log("Error: " + xmlhttp.status + " " + xmlhttp.statusText + "\n");
             }
         }
     };
-
-    load_events(xmlhttp, -1); // events from previous weeks, excluding current
-    window.n_ajax_events = 0;
-    load_events(xmlhttp, 0); // events from current week, sets window.n_ajax_events to number of events from current week
-
     update(xmlhttp); // start automatic updates
 }
 
@@ -331,7 +387,7 @@ function process_ajax_response(response, my_session_id) {
         window.n_ajax_empy_responses = 0;
     }
     // page_log("process_ajax_response: n events: " + n + " n_ajax_empy_responses: " + window.n_ajax_empy_responses + "\n");
-    // console.log("events: " + events.length + "\n" + response);
+    // console.log("process_ajax_response: events: " + events.length + "\n" + response);
     let i = 0;
     for (const event of events) {
         const d = JSON.parse(event);
@@ -352,12 +408,14 @@ function process_ajax_response(response, my_session_id) {
         if (d.session_id == my_session_id) {
             // ignore events from own session: no need to update form element
             // console.log("ignoriert: " + checkbox_id)
-        } else {
+            continue;
+        }
+        if (d.element_id) {
             // update form elements from changes in other sessions
             const e = document.getElementById(d.element_id);
-            console.log("processing element " + (++i) + "/" + events.length + " id " + d.element_id);
+            // console.log("processing element " + (++i) + "/" + events.length + " id " + d.element_id);
             if (e) {
-                console.log("  element tagName: " + e.tagName + " type: " + e.type + " => " + d.value)
+                console.log("  element id " + d.element_id + " tagName: " + e.tagName + " type: " + e.type + " => " + d.value)
                 if (e.tagName == "INPUT") {
                     if (e.type == "checkbox") {
                         e.checked = d.value;
@@ -370,6 +428,9 @@ function process_ajax_response(response, my_session_id) {
                         console.log("  *** unknown type: " + e.type);
                         // e.innerHTML = d.value.trim();
                     }
+                } else if (e.tagName == "TEXTAREA") {
+                    e.value = d.value;
+                    show_note(get_data(e, "id"), false); // Notiz nicht aufklappen, aber gelb hervorheben
                 } else {
                     console.log("  *** unknown tagName: " + e.tagName);
                 }
@@ -388,15 +449,16 @@ function process_ajax_response(response, my_session_id) {
 
 function currentDateAndTimeString() {
     const currentDate = new Date();
-    return currentDate.toLocaleString();
+    return currentDate.toLocaleString("de-AT"); // required format: "20.12.2012, 03:00:00"
 }
 
 function style_display(display, show_it) {
-    return display && show_it || !display && !show_it ? "" : "display:none";
+    return display && show_it || !display && !show_it ? "" : "display:none; ";
 }
 
 function show_note(id, show_it) {
-    document.getElementById("note-" + id).style = style_display(true, show_it);;
-    document.getElementById("note-button-show-" + id).style = style_display(false, show_it);
+    const has_text = document.getElementById("note-textarea-" + id).value.length > 0
+    document.getElementById("note-" + id).style = style_display(true, show_it);
+    document.getElementById("note-button-show-" + id).style = style_display(false, show_it) + (has_text ? "background-color: #FFC;" : "");
     document.getElementById("note-button-hide-" + id).style = style_display(true, show_it);
 }

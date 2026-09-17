@@ -2,18 +2,49 @@
 require_once "article.php";
 class ArticlePickup extends Article
 {
+    public $article_grouporder_ids;
+    public $ordered_before = 0;
+    public $received_before = 0;
+    public $weight_received_before;
+    public $ordered_remaning;
+    public $received_remaning;
+    public $weight_remaning;
+    public $weight_recommended;
+
     public function __construct($order, $data)
     {
         parent::__construct($order, $data);
         $this->ordered = intval($data["ordered"]);
         $this->tolerance = intval($data["tolerance"]);
         $this->received = floatval($data["received"]);
+
+        $this->grouporder_article_id = $data["grouporder_article_id"] ?? null; # 216734
+        $this->ordered_total = $data["ordered_total"] ?? null; # [] => 3
+        $this->received_total = $data["received_total"] ?? null; #  [] => 
+        $this->article_grouporder_ids = $this->app->article_grouporder_ids[$this->grouporder_article_id] ?? [];
+
         $this->set_state();
         $this->has_variable_weight = str_contains(
             $this->name . $this->unit,
             $this->app->variable_weight_tag
         );
-        $this->finalize_construct();
+
+        $this->finalize_construct(); // set weights, ...
+
+        foreach ($this->article_grouporder_ids as $id) {
+            $article = $this->app->articles_pickedup[$id];
+            if ($article["pickedup"]) {
+                $this->ordered_before += $article["ordered"];
+                $this->received_before += $article["received"];
+            }
+        }
+        $this->weight_received_before = round($this->received_before * $this->unit_weight);
+
+        $this->ordered_remaning = $this->ordered_total - $this->ordered_before;
+        $this->received_remaning = $this->received_total - $this->received_before;
+        $this->weight_remaning = $this->weight_received_total - $this->weight_received_before;
+
+        $this->weight_recommended = $this->ordered * ($this->weight_remaning / $this->ordered_remaning);
     }
 
     public function html_form()
@@ -53,6 +84,8 @@ class ArticlePickup extends Article
             $this->html_hidden_input("order_article_ids[" . $this->order->id . "][]", "ID");
             if ($this->is_distributed)
                 $this->html_hidden_input("distributed[]", "ID");
+
+            $this->html_hidden_input("grouporder_article_id", $this->grouporder_article_id);
         }
         print "</p>";
     }

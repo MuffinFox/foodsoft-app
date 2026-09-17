@@ -3,12 +3,14 @@ require_once("order.php");
 class OrderDistribute extends Order
 {
     public $distribute;
+    public $merge_articles;
     public $article_index = [];
 
     public function __construct($app, $data)
     {
         parent::__construct($app, $data);
         $this->distribute = $this->parameters["distribute"] ?? false; // @pickup:{"distribute":true}
+        $this->merge_articles = $this->parameters["merge"] ?? []; // @pickup:{"merge":[["..",".."], ...]}
         $this->sort_articles();
         $this->set_article_index();
     }
@@ -44,14 +46,28 @@ class OrderDistribute extends Order
         return new ArticleDistribute($this, $article_data);
     }
 
+    public function merge_articles()
+    {
+        foreach ($this->articles as &$article) {
+
+        }
+    }
+
+    public function name()
+    {
+        return $this->producer . " " . $this->date_str;
+    }
+
     public function html_heading()
     {
         print html_tag(
             "h2",
-            ["id" => "order-$this->id"],
-            $this->producer . " " . $this->date_str
+            ["id" => $this->heading_id()],
+            $this->name(),
         );
     }
+
+
 
 
 

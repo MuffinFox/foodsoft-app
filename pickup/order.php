@@ -83,7 +83,6 @@ class Order
         $this->sort_index = $this->is_open ? -999 : $this->days_in_past;
 
         // parameters from producer notes
-        $this->is_stock_order = $this->producer == "Lager";
         $this->producer_notes = $data["supplier_note"] ?? "";
         $items = explode("@pickup:", $this->producer_notes);
         $this->parameters = count($items) == 2 ? json_decode($items[1], true) : [];

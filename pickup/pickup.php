@@ -13,6 +13,7 @@ class PickupApp extends FoodsoftApiApp
     public $login_user;
     public $credit;
     public $show_only_received_orders;
+    public $self_distribution;
     public $variable_weight_tag;
     public $locked_weight_tags;
     public $n_pickedup_initially = 0;
@@ -50,7 +51,10 @@ class PickupApp extends FoodsoftApiApp
     public function __construct($config)
     {
         parent::__construct($config);
+
         $this->show_only_received_orders = $config["show_only_received_orders"] ?? false;
+        $this->self_distribution = $config["self_distribution"] ?? false;
+
         // print "<pre>pickup::construct config:";
         // print_r($config);
         // print "</pre>";
@@ -79,7 +83,7 @@ class PickupApp extends FoodsoftApiApp
                 $this->credit = $this->get_foodsoft_credit();
                 $this->get_foodsoft_group_orders($this->was_ordergroup_selected ? $this->ordergroup_id : null);
                 $this->load_article_distribution();
-                $this->load_article_pickup_states("current");
+                $this->load_article_pickup_states($this->self_distribution ? "all" : "current"); // for which ordergroup(s)?
 
                 // html output
                 $this->html_header([

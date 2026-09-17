@@ -91,6 +91,7 @@ ul li {
 
 .info {
   font-style: italic;
+  font-family: Ubuntu, sans-serif;
 }
 
 .past-order {
@@ -140,12 +141,20 @@ input.number {
 
 textarea {
   background-color: #FFC;
+  font-family: Ubuntu, sans-serif;
 }
 
 .save-button {
   width: 285px;
   background-color: #0A0;
   padding: 10px 40px;
+  color: white;
+  border-radius: 8px;
+  font-size: 16px;
+}
+
+.save-button-small {
+  background-color: #0A0;
   color: white;
   border-radius: 8px;
   font-size: 16px;
@@ -159,7 +168,8 @@ table {
 
 td,
 th {
-  font-family: Arial, Helvetica, sans-serif;
+  /* font-family: Arial, Helvetica, sans-serif; */
+  font-family: Ubuntu, sans-serif;
   border-color: black;
   border-width: 1px 1px 0 0;
   border-style: solid;
