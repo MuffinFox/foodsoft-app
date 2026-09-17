@@ -38,13 +38,18 @@ class ArticlePickup extends Article
                 $this->received_before += $article["received"];
             }
         }
-        $this->weight_received_before = round($this->received_before * $this->unit_weight);
+        if ($this->unit_weight > 0) {
+            $this->weight_received_before = round($this->received_before * $this->unit_weight);
 
-        $this->ordered_remaning = $this->ordered_total - $this->ordered_before;
-        $this->received_remaning = $this->received_total - $this->received_before;
-        $this->weight_remaning = $this->weight_received_total - $this->weight_received_before;
-
-        $this->weight_recommended = $this->ordered * ($this->weight_remaning / $this->ordered_remaning);
+            $this->ordered_remaning = $this->ordered_total - $this->ordered_before;
+            $this->received_remaning = $this->received_total - $this->received_before;
+            $this->weight_remaning = $this->weight_received_total - $this->weight_received_before;
+            if ($this->ordered_remaning != 0)
+                $this->weight_recommended = $this->ordered * ($this->weight_remaning / $this->ordered_remaning);
+            else {
+                $this->weight_recommended = 0;
+            }
+        }
     }
 
     public function html_form()

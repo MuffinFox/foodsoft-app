@@ -148,7 +148,7 @@ class FoodsoftApiApp extends FoodsoftApp
         if (count($order_data) == 0) {
             // print "group_orders array from api is empty!\n";
         }
-        // $this->orders = $order_data;
+        $this->orders = $order_data;
         // print "<pre>";
         // print_r($order_data);
         // print "------------------------------------\n\n</pre>";
