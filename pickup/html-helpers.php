@@ -35,6 +35,19 @@ function html_button($text, $id, $on_click, $visible = true, $attributes = [])
     );
 }
 
+function html_symbol($image_filename, $valign = "baseline", $width = null)
+{
+    // vertical-align: baseline (default), text-top, text-bottom, sub, sup
+    return html_tag(
+        "img",
+        [
+            "src" => "../images/" . $image_filename,
+            "style" => "vertical-align: $valign;" .
+                ($width ? " max-width: " . $width . "px; height:auto;" : "")
+        ]
+    );
+}
+
 function html_checkbox($name, $value, $id, $onchange = "", $large = false, $checked = false)
 {
     if ($large) {
@@ -86,7 +99,16 @@ function html_list($items, $ordered = false)
         "</li></$list_type>";
 }
 
-function html_select($var_name, $options)
+function html_index($items)
+{
+    $linked_items = [];
+    foreach ($items as $id => $title) {
+        $linked_items[] = html_tag("a", ["href" => "#$id"], $title);
+    }
+    return html_list($linked_items);
+}
+
+function html_select($var_name, $options, $attributes = [])
 {
     $html_options = [];
     // ... '<option value="none">-- bitte ... auswählen --</option>';
@@ -99,7 +121,7 @@ function html_select($var_name, $options)
             "name" => $var_name,
             "id" => $var_name,
             "onChange" => "window.location.href='#'+this.value;",
-        ],
+        ] + $attributes,
         implode("\n", $html_options)
     );
 }
@@ -243,7 +265,6 @@ class form_input
             $this->value_reset = $value_reset;
             $this->set_data_attribute("reset-value", sprintf("%.0f", $value_reset));
         }
-
     }
 
     public function set_reset_button($value_reset, $button_text = "R")
@@ -344,5 +365,3 @@ class form_input
         }
     }
 }
-
-?>

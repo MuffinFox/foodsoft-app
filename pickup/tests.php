@@ -51,7 +51,6 @@ $test_units = [
     "ca.1,2kg" => 1200,
     "ca. 1,2kg" => 1200,
     "ca. 1,2 kg" => 1200,
-
 ];
 
 print "<pre>";

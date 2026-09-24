@@ -30,6 +30,8 @@ class ArticleSubmitted extends Article
         $this->single_weights = $this->get("single_weight") ?: [];
         $this->note = $this->get("note");
         $this->changelog_items = [];
+
+        $this->grouporder_article_id = $this->get("grouporder_article_id") ?: null;
     }
 
     public function get($property)
@@ -103,7 +105,12 @@ class ArticleSubmitted extends Article
             $this->app->articles_pickedup[] = [
                 "id" => $this->id,
                 "pickedup" => $this->is_checked(),
-                "date" => date("Y-m-d H:i:s")
+                "date" => date("Y-m-d H:i:s"),
+
+                "grouporder_article_id" => $this->grouporder_article_id,
+                "ordered" => $this->ordered,
+                "received" => $this->received,
+                "weight_received" => $this->weight_received,
             ];
         } else {
             error_log("update_status(): unbekannte Methode: " . $this->app->article_state_save_method);

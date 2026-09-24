@@ -20,9 +20,15 @@ class Article
     public $unit_weight;
     public $unit_volume;
 
+    public $grouporder_article_id;
+    public $ordered_total;
+    public $received_total;
+
     public $price_per_kg;
     public $weight_ordered;
+    public $weight_ordered_total;
     public $weight_received;
+    public $weight_received_total;
     public $reset_weight;
     public $has_weight;
     public $has_variable_weight;
@@ -101,7 +107,7 @@ class Article
 
         $this->is_pickedup = $this->app->articles_pickedup[$this->id]["pickedup"] ??
             $this->is_pickedup;
-        $this->is_pickedup |= !$this->is_received(); // mark it as "done"
+        $this->is_pickedup |= !$this->is_received(); // mark it as "done" if not received
     }
 
     public function finalize_construct()
@@ -113,6 +119,9 @@ class Article
         $this->weight_ordered = $this->unit_weight * $this->ordered;
         $this->weight_received = round($this->unit_weight * $this->received);
         $this->reset_weight = round($this->unit_weight * $this->reset_received);
+
+        $this->weight_ordered_total = $this->unit_weight * $this->ordered_total;
+        $this->weight_received_total = round($this->unit_weight * $this->received_total);
     }
 
     public function is_received()
