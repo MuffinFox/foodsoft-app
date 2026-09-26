@@ -1,0 +1,8 @@
+backups/
+
+# pickup: ignore all foodcoop dirs with configs
+pickup/*/
+!pickup/images/
+!pickup/fonts/
+!pickup/styles/
+!pickup/template-foodcoop/
