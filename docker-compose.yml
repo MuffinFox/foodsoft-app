@@ -1,0 +1,24 @@
+services:
+  php:
+    build: .
+    container_name: pickup_php_dev
+    ports:
+      - "8083:8083"
+    volumes:
+      - ./pickup:/var/www/pickup
+    working_dir: /var/www
+  caddy:
+    image: caddy:2-alpine
+    container_name: pickup_https_proxy
+    depends_on:
+      - php
+    ports:
+      - "8082:8082"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  caddy_data:
+  caddy_config:
