@@ -1,0 +1,8 @@
+{
+    "name": "foodcoopsat/foodsoft-pickup",
+    "type": "project",
+    "require": {
+        "php": ">=8.2",
+        "erusev/parsedown": "^1.7"
+    }
+}
