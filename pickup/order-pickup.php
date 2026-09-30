@@ -33,11 +33,11 @@ class OrderPickup extends Order
         $has_comments = $this->app->show_order_comments && ([] !== $this->order_comments);
         if ($has_comments) {
             $comment_popover_html =
-                "<span class='info-icon' tabindex='0' " .
+                "<button type='button' class='info-icon' " .
                 "onclick='event.stopPropagation(); toggle_comment_popover(\"$this->id\")' " .
-                "title='Kommentare zur Bestellung'>" .
+                "title='Kommentare zur Bestellung' aria-label='Kommentare zur Bestellung'>" .
                 info_icon() .
-                "</span>" .
+                "</button>" .
                 "<div class='comment-popover' id='comment-popover-$this->id'>" .
                 html_list(array_map('linkify_contacts', $this->order_comments)) .
                 "</div>";
