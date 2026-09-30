@@ -173,7 +173,8 @@ function toggle_comment_popover(order_id) {
     popover.style.display = is_open ? 'none' : 'block';
 }
 
-document.addEventListener('click', function () {
+document.addEventListener('pointerdown', function (event) {
+    if (event.target.closest('.info-icon, .comment-popover')) return;
     document.querySelectorAll('.comment-popover').forEach(function (el) {
         el.style.display = 'none';
     });
