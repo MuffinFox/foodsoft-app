@@ -365,3 +365,313 @@ class form_input
         }
     }
 }
+
+function print_table_style()
+{
+    return "<style>
+        .pt-section { margin: 0 0 28px; }
+        .pt-section-header {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: baseline;
+            justify-content: space-between;
+            gap: 8px;
+            font-family: Ubuntu, sans-serif;
+            padding: 10px 14px;
+            background: #f4f4f4;
+            border: 1px solid #ddd;
+            border-bottom: none;
+            border-radius: 8px 8px 0 0;
+        }
+        .pt-order-name { font-weight: 600; font-size: 1.05rem; color: #222; }
+        .pt-info-wrap {
+            position: relative;
+            display: inline-flex;
+            vertical-align: middle;
+            margin-right: 6px;
+            cursor: pointer;
+            color: #555;
+        }
+        .pt-popover {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            z-index: 10;
+            background: white;
+            color: #222;
+            font-style: normal;
+            font-weight: 400;
+            font-size: 0.85rem;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            padding: 8px 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            width: 80vw;
+            max-width: 320px;
+            text-align: left;
+        }
+        .pt-info-wrap:hover .pt-popover,
+        .pt-info-wrap:focus-within .pt-popover { display: block; }
+        .pt-popover strong { display: block; margin-bottom: 4px; }
+        .pt-popover ul { list-style: none; margin: 0; padding: 0; }
+        .pt-popover li { padding: 2px 0; }
+        .pt-popover li.pt-pickedup { color: #1e8e3e; font-weight: 600; }
+        .pt-order-date { font-size: 0.85rem; color: #666; }
+        .pt-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            font-family: Ubuntu, sans-serif;
+            font-size: 0.9rem;
+            border: 1px solid #ddd;
+            border-top: none;
+            border-radius: 0 0 8px 8px;
+            overflow: hidden;
+        }
+        .pt-table th, .pt-table td {
+            padding: 8px 12px;
+            border: none;
+            border-bottom: 1px solid #eee;
+            text-align: left;
+        }
+        .pt-table th {
+            background: #fafafa;
+            font-size: 0.72rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: #666;
+            border-bottom: 2px solid #e0e0e0;
+        }
+        .pt-table td.pt-num { text-align: right; font-variant-numeric: tabular-nums; }
+        .pt-table th.pt-group { text-align: center; border-bottom: 1px solid #e0e0e0; }
+        .pt-table tbody tr.pt-row-even { background: #fbfbfb; }
+        .pt-table tbody tr:last-child td { border-bottom: none; }
+        .pt-badge {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 999px;
+            font-weight: 600;
+            font-size: 0.82rem;
+            background: #eef0f2;
+            color: #555;
+        }
+        .pt-badge.pt-complete { background: #e3f6e8; color: #1e8e3e; }
+        .pt-progress-row td { background: #fcfcfc; padding: 12px; }
+        .pt-progress { display: flex; align-items: center; gap: 10px; }
+        .pt-progress-track {
+            flex: 1 1 auto;
+            height: 10px;
+            background: #e6e6e6;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+        .pt-progress-fill {
+            height: 100%;
+            border-radius: 6px;
+            background: #2f80ed;
+            transition: width 0.3s ease;
+        }
+        .pt-progress-fill.pt-complete { background: #27ae60; }
+        .pt-progress-label {
+            flex: 0 0 auto;
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: #444;
+            min-width: 3.2em;
+            text-align: right;
+        }
+    </style>";
+}
+
+function print_table_percent_class($percent)
+{
+    return $percent >= 100 ? "pt-complete" : "pt-incomplete";
+}
+
+function print_table_label($key)
+{
+    $labels = [
+        "article_name" => "Artikel",
+        "ordered" => "bestellt",
+        "received" => "erhalten",
+        "pickup_percent" => "%",
+        "pickup" => "gesamt",
+        "pickup_count" => "Bestellgruppen",
+    ];
+    return $labels[$key] ?? ucfirst(str_replace("_", " ", $key));
+}
+
+function print_table_ordergroups_popover($ordergroups)
+{
+    if (!$ordergroups) {
+        return "";
+    }
+    $items = array_map(function ($group) {
+        $name = htmlspecialchars($group["name"] ?? "", ENT_QUOTES, "UTF-8");
+        $class = !empty($group["pickedup"]) ? " class='pt-pickedup'" : "";
+        return "<li$class>$name</li>";
+    }, $ordergroups);
+
+    return "<span class='pt-info-wrap' tabindex='0' title='Bestellgruppen'>" .
+        info_icon() .
+        "<div class='pt-popover'><strong>Bestellgruppen:</strong><ul>" . implode("", $items) . "</ul></div>" .
+        "</span>";
+}
+
+function print_table_header_group($keys)
+{
+    // groups the trailing pickup_percent/pickup/pickup_count columns under a
+    // shared "Abholung" spanning header, if present in that exact order
+    $group_keys = ["pickup_percent", "pickup", "pickup_count"];
+    return array_slice($keys, -count($group_keys)) === $group_keys ? $group_keys : [];
+}
+
+function print_table_format_date($date_str)
+{
+    $date = date_create($date_str);
+    if (!$date) {
+        return htmlspecialchars($date_str, ENT_QUOTES, "UTF-8");
+    }
+    $weekdays = ["Mon" => "Mo", "Tue" => "Di", "Wed" => "Mi", "Thu" => "Do", "Fri" => "Fr", "Sat" => "Sa", "Sun" => "So"];
+    return strtr(date_format($date, "D d.m.Y"), $weekdays);
+}
+
+function print_table_format_value($key, $value)
+{
+    if (is_array($value)) {
+        return htmlspecialchars(implode(", ", array_filter($value)), ENT_QUOTES, "UTF-8");
+    }
+    if (str_contains($key, "percent")) {
+        $percent = round(floatval($value));
+        return "<span class='pt-badge " . print_table_percent_class($percent) . "'>$percent%</span>";
+    }
+    if (is_numeric($value)) {
+        return htmlspecialchars(rtrim(rtrim(sprintf("%.2f", $value), "0"), "."), ENT_QUOTES, "UTF-8");
+    }
+    return htmlspecialchars((string) $value, ENT_QUOTES, "UTF-8");
+}
+
+function print_table_format_pickup_count($article)
+{
+    $pickup_count = $article["pickup_count"] ?? 0;
+    if (!isset($article["grouporders_count"])) {
+        return (string) $pickup_count;
+    }
+    return $pickup_count . "/" . $article["grouporders_count"];
+}
+
+function print_table_progress_percent($articles)
+{
+    $total_pickedup_percent = 0;
+    foreach ($articles as $article) {
+        $total_pickedup_percent += $article["pickup_percent"] ?? 0;
+    }
+    return $total_pickedup_percent > 0 ? round($total_pickedup_percent / count($articles)) : 0;
+}
+
+function print_article_row($article, $keys, $is_even = false)
+{
+    if (!isset($keys)) {
+        $keys = array_values(array_diff(array_keys($article), ["grouporders_count"]));
+    }
+    $row_class = $is_even ? " class='pt-row-even'" : "";
+    print "<tr$row_class>";
+    foreach ($keys as $key) {
+        if ($key === "pickup_count") {
+            print "<td class='pt-num'>" .
+                htmlspecialchars(print_table_format_pickup_count($article), ENT_QUOTES, "UTF-8") .
+                "</td>";
+            continue;
+        }
+        $value = $article[$key] ?? "";
+        $class = is_numeric($value) ? " class='pt-num'" : "";
+        print "<td$class>" . print_table_format_value($key, $value) . "</td>";
+    }
+    print "</tr>";
+}
+
+function print_table($sections)
+{
+    // renders $sections (one per order, each with order_name, order_pickup and
+    // a list of articles) as a set of modern-styled html tables, with a
+    // progress bar summarizing the order's overall pickup completion
+    static $style_printed = false;
+    if (!$style_printed) {
+        print print_table_style();
+        $style_printed = true;
+    }
+
+    if (!$sections) {
+        print html_tag("p", ["class" => "info"], "Keine Bestellungen zum Anzeigen.");
+        return;
+    }
+
+    foreach ($sections as $section) {
+        $articles = $section["articles"] ?? [];
+        $keys = $articles ? array_values(array_diff(array_keys($articles[0]), ["grouporders_count"])) : [];
+
+        print "<section class='pt-section'>";
+        print "<div class='pt-section-header'>";
+        print "<span class='pt-order-name'>" .
+            print_table_ordergroups_popover($section["ordergroups"] ?? []) .
+            htmlspecialchars($section["order_name"] ?? "", ENT_QUOTES, "UTF-8") . "</span>";
+        if (!empty($section["order_pickup"])) {
+            print "<span class='pt-order-date'>" . print_table_format_date($section["order_pickup"]) . "</span>";
+        }
+        print "</div>";
+
+        if (!$articles) {
+            print "<table class='pt-table'><tr><td>Keine Artikel zum Anzeigen.</td></tr></table>";
+            print "</section>";
+            continue;
+        }
+
+        print "<table class='pt-table'>";
+        print "<thead>";
+        $group_keys = print_table_header_group($keys);
+        print "<tr>";
+        foreach ($keys as $key) {
+            if (in_array($key, $group_keys)) {
+                if ($key === $group_keys[0]) {
+                    print "<th colspan='" . count($group_keys) . "' class='pt-group'>Abholung (App)</th>";
+                }
+                continue;
+            }
+            print "<th" . ($group_keys ? " rowspan='2'" : "") . ">" .
+                htmlspecialchars(print_table_label($key), ENT_QUOTES, "UTF-8") . "</th>";
+        }
+        print "</tr>";
+        if ($group_keys) {
+            print "<tr>";
+            foreach ($group_keys as $key) {
+                print "<th>" . htmlspecialchars(print_table_label($key), ENT_QUOTES, "UTF-8") . "</th>";
+            }
+            print "</tr>";
+        }
+        print "</thead>";
+
+        print "<tbody>";
+
+        $percent = print_table_progress_percent($articles);
+        $complete_class = print_table_percent_class($percent);
+        print "<tr class='pt-progress-row'>";
+        print "<td colspan='" . count($keys) . "'>";
+        print "<div class='pt-progress'>";
+        print "<div class='pt-progress-track'><div class='pt-progress-fill $complete_class' style='width:{$percent}%'></div></div>";
+        print "<span class='pt-progress-label'>$percent%</span>";
+        print "</div>";
+        print "</td>";
+        print "</tr>";
+
+        foreach ($articles as $i => $article) {
+            print_article_row($article, $keys, $i % 2 === 1);
+        }
+        print "</tbody>";
+        print "</table>";
+        print "</section>";
+    }
+}
+
+?>

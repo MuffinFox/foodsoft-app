@@ -4,6 +4,7 @@ require_once("order-pickup.php");
 require_once("article-pickup.php");
 require_once("order-submit.php");
 require_once("article-submit.php");
+require_once("article-distribute.php");
 
 class PickupApp extends FoodsoftApiApp
 {
@@ -68,6 +69,19 @@ class PickupApp extends FoodsoftApiApp
             $this->load_protocolls(); // load protocoll of the last 5 weeks
             $this->generate_table_from_protocoll($this->get["view"] ?? "chronological");
             $this->html_table($this->table, $this->table_headers);
+            $this->html_footer();
+            exit();
+        }
+
+        if ($this->action == "summary") {
+            $order_id = $this->get['order_id'] ?? null;
+            $article_id = $this->get['article_id'] ?? null;
+
+            $this->title = "Abholungsübersicht";
+            $this->html_header();
+            $this->html_title();
+            $this->load_protocolls(); // load protocoll of the last 5 weeks
+            $this->generate_summary_table($order_id, $article_id);
             $this->html_footer();
             exit();
         }
@@ -471,5 +485,106 @@ class PickupApp extends FoodsoftApiApp
         }
     }
 
+    public function get_foodsoft_orders($order_ids = null, $stock_orders = true)
+    {
+        $url = $this->api_url . "/orders" .
+            ($order_ids ?
+                "?ids=" . implode(
+                    ",",
+                    array_map('strval', $order_ids)
+                )
+                : ""
+            );
+        // print "api-url: $url\n";
+        $data = $this->api->getResource($url);
+        if ($stock_orders) {
+            $orders = $data["orders"];
+        } else {
+            $orders = array_filter($data["orders"], function ($order) {
+                // print_r($order);
+                // print $order["name"] != "Lager" ? "kein Lager" : "ist Lager";
+                // print "\n";
+                return $order["name"] != "Lager";
+            });
+        }
+
+        return $orders;
+    }
+
+    public function generate_summary_table(?int $order_id, ?int $article_id)
+    {
+        // load all states
+        $this->load_article_pickup_states("all");
+
+        // fetch all open orders
+        $orders = $this->get_foodsoft_orders($order_id ? [$order_id] : null);
+        $table_data = [];
+        foreach ($orders as $order) {
+            if ($order['state'] != 'finished') {
+                // gets order detail
+                $current_order = $this->get_foodsoft_orders([$order['id']])[0];
+                $current_order['order_id'] = $current_order["id"];
+                $order_obj = $this->create_order($current_order);
+                $row_data = []; 
+                $ordergroups = [];
+
+                foreach ($order_obj->articles as $article) {
+                    if (null !== $article_id && $article['id'] != $article_id) continue;
+
+                    $article_obj = new ArticleDistribute($order_obj, $article); 
+                    $received = 0;
+                    $ordered = 0;
+                    $pickup = 0;
+                    $pickupWithAppCount = 0;
+                    foreach ($article['grouporders'] as $group_order) {
+                        $received += $group_order['received'];
+                        $ordered += $group_order['ordered'];
+                        
+                        // if already picked up
+                        $pickupWithApp = array_key_exists($group_order['id'], $this->articles_pickedup);
+                        if ($pickupWithApp) {
+                            $pickup =+ $group_order['received'];
+                            $pickupWithAppCount =+ 1;
+                        }
+
+                        $ordergroups[] = [
+                            'name' => $group_order['ordergroup_name'],
+                            'pickedup' => $pickupWithApp
+                        ];
+                    }
+                    
+                    $row_data[] = [
+                        'article_name' => $article['name'],
+                        'ordered' => $article_obj->ordered,
+                        'received' => $article_obj->received, 
+                        'pickup_percent' => ($pickup ?? 0 > 0 ? round($pickup/$article_obj->received*100) : 0),
+                        'pickup' => $pickup,
+                        'pickup_count' => $pickupWithAppCount,
+                        'grouporders_count' => count($article['grouporders'])
+                    ];
+                }
+                
+                $ordergroups_by_name = [];
+                foreach ($ordergroups as $ordergroup) {
+                    $name = $ordergroup['name'];
+                    $ordergroups_by_name[$name] =
+                        ($ordergroups_by_name[$name] ?? true) && $ordergroup['pickedup'];
+                }
+                $ordergroups_unique = [];
+                foreach ($ordergroups_by_name as $name => $pickedup) {
+                    $ordergroups_unique[] = ['name' => $name, 'pickedup' => $pickedup];
+                }
+
+                $table_data[] = [
+                    'order_name' => $order['name'],
+                    'order_pickup' => $order['pickup'],
+                    'ordergroups' => $ordergroups_unique,
+                    'articles' => $row_data
+                ];
+            }
+        }
+        
+        print_table($table_data);
+    }
 }
 ?>
