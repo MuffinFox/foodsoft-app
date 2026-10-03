@@ -50,14 +50,18 @@ class OrderPickup extends Order
             "order_id" => $this->id,
             "access_token" => $this->app->api->access_token,
         ]);
-        $summary_link = html_tag("a", [
-            "class" => "summary-link",
-            "href" => $summary_url,
-            "target" => "_blank",
-            "rel" => "noopener",
-            "title" => "Abholungsübersicht dieser Bestellung in neuem Fenster öffnen",
-        ], "Übersicht");
 
+        // deactivated for now
+        $summary_link = '';
+        if (false) {
+            $summary_link = html_tag("a", [
+                "class" => "summary-link",
+                "href" => $summary_url,
+                "target" => "_blank",
+                "rel" => "noopener",
+                "title" => "Abholungsübersicht dieser Bestellung in neuem Fenster öffnen",
+            ], "Übersicht");
+        }
         print "<h3 class='$order_classes'>$comment_popover_html" . $this->producer . " $summary_link</h3>";
         // print "<p>Status: $this->state, " .
         //     ($this->is_received ? "received" : "not received") . "," .
