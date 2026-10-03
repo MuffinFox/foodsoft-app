@@ -4,5 +4,10 @@
     "require": {
         "php": ">=8.2",
         "erusev/parsedown": "^1.7"
+    },
+    "scripts": {
+        "post-install-cmd": [
+            "php -r \"file_put_contents('vendor/.htaccess', 'Order allow,deny' . PHP_EOL . 'Deny from all');\""
+        ]
     }
 }
