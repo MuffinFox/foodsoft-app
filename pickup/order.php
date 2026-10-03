@@ -100,7 +100,7 @@ class Order
         $this->order_comments = [];
 
         // uncomment for testing
-        $data["comments"] = [["order_comment" => ["text" => "Angenommen von Thomas 0680123132123"]], ["order_comment" => ["text" => "Kohlrabi 2 für 1"]]];
+        //$data["comments"] = [["order_comment" => ["text" => "Angenommen von Thomas 0680123132123"]], ["order_comment" => ["text" => "Kohlrabi 2 für 1"]]];
         foreach ($data["comments"] ?? [] as $comment) {
             foreach (explode("\n", $comment["order_comment"]["text"]) as $comment_line) {
                 $items = explode("@pickup:", $comment_line);
