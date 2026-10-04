@@ -53,7 +53,7 @@ class OrderPickup extends Order
 
         // deactivated for now
         $summary_link = '';
-        if (false) {
+        if ($this->app->show_summary_link) {
             $summary_link = html_tag("a", [
                 "class" => "summary-link",
                 "href" => $summary_url,

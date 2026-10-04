@@ -411,8 +411,27 @@ function print_table_style()
             max-width: 320px;
             text-align: left;
         }
-        .pt-info-wrap:hover .pt-popover,
-        .pt-info-wrap:focus-within .pt-popover { display: block; }
+        .pt-info-btn {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            border: none;
+            background: none;
+            padding: 0;
+            margin: 0;
+            font: inherit;
+            color: inherit;
+            cursor: pointer;
+        }
+        /* larger tap target on touch devices */
+        .pt-info-btn::before { content: ''; position: absolute; inset: -10px; }
+        .pt-info-wrap-right { margin-right: 0; }
+        .pt-info-wrap-right .pt-info-btn { text-decoration: underline dotted; }
+        .pt-info-wrap-right .pt-popover { left: auto; right: 0; }
+        .pt-info-wrap.pt-open .pt-popover { display: block; }
+        @media (hover: hover) {
+            .pt-info-wrap:hover .pt-popover { display: block; }
+        }
         .pt-popover strong { display: block; margin-bottom: 4px; }
         .pt-popover ul { list-style: none; margin: 0; padding: 0; }
         .pt-popover li { padding: 2px 0; }
@@ -427,8 +446,10 @@ function print_table_style()
             border: 1px solid #ddd;
             border-top: none;
             border-radius: 0 0 8px 8px;
-            overflow: hidden;
         }
+        /* round the corner cells instead of overflow: hidden, which would clip popovers */
+        .pt-table tbody tr:last-child td:first-child { border-bottom-left-radius: 8px; }
+        .pt-table tbody tr:last-child td:last-child { border-bottom-right-radius: 8px; }
         .pt-table th, .pt-table td {
             padding: 8px 12px;
             border: none;
@@ -447,6 +468,7 @@ function print_table_style()
         .pt-table td.pt-num { text-align: right; font-variant-numeric: tabular-nums; }
         .pt-table th.pt-group { text-align: center; border-bottom: 1px solid #e0e0e0; }
         .pt-table tbody tr.pt-row-even { background: #fbfbfb; }
+        .pt-table tbody tr.pt-row-not-received td { color: #aaa; }
         .pt-table tbody tr:last-child td { border-bottom: none; }
         .pt-badge {
             display: inline-block;
@@ -482,7 +504,25 @@ function print_table_style()
             min-width: 3.2em;
             text-align: right;
         }
-    </style>";
+    </style>
+    <script>
+        // toggles the ordergroups popovers on click/tap (hover alone doesn't work on touch devices)
+        document.addEventListener('click', function (event) {
+            var button = event.target.closest('.pt-info-btn');
+            var wrap = button ? button.closest('.pt-info-wrap') : null;
+            if (!wrap && event.target.closest('.pt-popover')) return;
+            document.querySelectorAll('.pt-info-wrap.pt-open').forEach(function (el) {
+                if (el !== wrap) {
+                    el.classList.remove('pt-open');
+                    el.querySelector('.pt-info-btn').setAttribute('aria-expanded', 'false');
+                }
+            });
+            if (wrap) {
+                var is_open = wrap.classList.toggle('pt-open');
+                button.setAttribute('aria-expanded', is_open ? 'true' : 'false');
+            }
+        });
+    </script>";
 }
 
 function print_table_percent_class($percent)
@@ -503,10 +543,12 @@ function print_table_label($key)
     return $labels[$key] ?? ucfirst(str_replace("_", " ", $key));
 }
 
-function print_table_ordergroups_popover($ordergroups)
+function print_table_ordergroups_popover($ordergroups, $trigger_html = null, $align_right = false)
 {
+    // popover listing the ordergroups (picked up ones highlighted), opened by
+    // hovering or tapping $trigger_html (defaults to the info icon)
     if (!$ordergroups) {
-        return "";
+        return $trigger_html ?? "";
     }
     $items = array_map(function ($group) {
         $name = htmlspecialchars($group["name"] ?? "", ENT_QUOTES, "UTF-8");
@@ -514,8 +556,13 @@ function print_table_ordergroups_popover($ordergroups)
         return "<li$class>$name</li>";
     }, $ordergroups);
 
-    return "<span class='pt-info-wrap' tabindex='0' title='Bestellgruppen'>" .
-        info_icon() .
+    $wrap_class = "pt-info-wrap" . ($align_right ? " pt-info-wrap-right" : "");
+    // icon-only buttons need a label for screen readers
+    $aria_label = $trigger_html === null ? " aria-label='Bestellgruppen anzeigen'" : "";
+    return "<span class='$wrap_class'>" .
+        "<button type='button' class='pt-info-btn' aria-expanded='false' title='Bestellgruppen'$aria_label>" .
+        ($trigger_html ?? info_icon()) .
+        "</button>" .
         "<div class='pt-popover'><strong>Bestellgruppen:</strong><ul>" . implode("", $items) . "</ul></div>" .
         "</span>";
 }
@@ -562,6 +609,12 @@ function print_table_format_pickup_count($article)
     return $pickup_count . "/" . $article["grouporders_count"];
 }
 
+function print_table_keys($article)
+{
+    // article fields shown as columns; the rest are only used inside other cells
+    return array_values(array_diff(array_keys($article), ["grouporders_count", "ordergroups"]));
+}
+
 function print_table_progress_percent($articles)
 {
     $total_pickedup_percent = 0;
@@ -574,15 +627,25 @@ function print_table_progress_percent($articles)
 function print_article_row($article, $keys, $is_even = false)
 {
     if (!isset($keys)) {
-        $keys = array_values(array_diff(array_keys($article), ["grouporders_count"]));
+        $keys = print_table_keys($article);
     }
-    $row_class = $is_even ? " class='pt-row-even'" : "";
+    $not_received = isset($article["received"]) && floatval($article["received"]) == 0;
+    $row_classes = array_filter([$is_even ? "pt-row-even" : "", $not_received ? "pt-row-not-received" : ""]);
+    $row_class = $row_classes ? " class='" . implode(" ", $row_classes) . "'" : "";
     print "<tr$row_class>";
     foreach ($keys as $key) {
         if ($key === "pickup_count") {
             print "<td class='pt-num'>" .
-                htmlspecialchars(print_table_format_pickup_count($article), ENT_QUOTES, "UTF-8") .
+                print_table_ordergroups_popover(
+                    $article["ordergroups"] ?? [],
+                    htmlspecialchars(print_table_format_pickup_count($article), ENT_QUOTES, "UTF-8"),
+                    true
+                ) .
                 "</td>";
+            continue;
+        }
+        if ($not_received && str_contains($key, "percent")) {
+            print "<td class='pt-num'></td>";
             continue;
         }
         $value = $article[$key] ?? "";
@@ -592,7 +655,7 @@ function print_article_row($article, $keys, $is_even = false)
     print "</tr>";
 }
 
-function print_table($sections)
+function print_summary_table($sections)
 {
     // renders $sections (one per order, each with order_name, order_pickup and
     // a list of articles) as a set of modern-styled html tables, with a
@@ -610,7 +673,7 @@ function print_table($sections)
 
     foreach ($sections as $section) {
         $articles = $section["articles"] ?? [];
-        $keys = $articles ? array_values(array_diff(array_keys($articles[0]), ["grouporders_count"])) : [];
+        $keys = $articles ? print_table_keys($articles[0]) : [];
 
         print "<section class='pt-section'>";
         print "<div class='pt-section-header'>";

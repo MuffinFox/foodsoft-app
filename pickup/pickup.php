@@ -42,6 +42,7 @@ class PickupApp extends FoodsoftApiApp
         "note" => "Notiz"
     ];
     public $show_order_comments = false;
+    public $show_summary_link = false;
 
     public function needs_api()
     {
@@ -55,6 +56,7 @@ class PickupApp extends FoodsoftApiApp
         $this->show_only_received_orders = $config["show_only_received_orders"] ?? false;
         $this->show_order_comments = $config["show_order_comments"] ?? false;
         $this->self_distribution = $config["self_distribution"] ?? false;
+        $this->show_summary_link = $config['show_summary_link'];
 
         // print "<pre>pickup::construct config:";
         // print_r($config);
@@ -511,6 +513,21 @@ class PickupApp extends FoodsoftApiApp
         return $orders;
     }
 
+    private function get_unique_ordergroups(array $ordergroups) {
+        $ordergroups_by_name = [];
+        foreach ($ordergroups as $ordergroup) {
+            $name = $ordergroup['name'];
+            $ordergroups_by_name[$name] =
+                ($ordergroups_by_name[$name] ?? true) && $ordergroup['pickedup'];
+        }
+        $ordergroups_unique = [];
+        foreach ($ordergroups_by_name as $name => $pickedup) {
+            $ordergroups_unique[] = ['name' => $name, 'pickedup' => $pickedup];
+        }
+
+        return $ordergroups_unique;
+    }
+
     public function generate_summary_table(?int $order_id, ?int $article_id)
     {
         // load all states
@@ -532,59 +549,54 @@ class PickupApp extends FoodsoftApiApp
                     if (null !== $article_id && $article['id'] != $article_id) continue;
 
                     $article_obj = new ArticleDistribute($order_obj, $article); 
-                    $received = 0;
-                    $ordered = 0;
                     $pickup = 0;
-                    $pickupWithAppCount = 0;
+                    $pickup_with_app_count = 0;
+                    $article_ordergroups = [];
                     foreach ($article['grouporders'] as $group_order) {
-                        $received += $group_order['received'];
-                        $ordered += $group_order['ordered'];
-                        
-                        // if already picked up
-                        $pickupWithApp = array_key_exists($group_order['id'], $this->articles_pickedup);
-                        if ($pickupWithApp) {
-                            $pickup =+ $group_order['received'];
-                            $pickupWithAppCount =+ 1;
+                        // if already picked up, only if articles received
+                        $pickup_with_app = array_key_exists($group_order['id'], $this->articles_pickedup);
+                        if ($pickup_with_app && $group_order['received']) {
+                            $pickup += $group_order['received'];
+                            $pickup_with_app_count += 1;
                         }
-
-                        $ordergroups[] = [
+                        
+                        $current_ordergroup = [
                             'name' => $group_order['ordergroup_name'],
-                            'pickedup' => $pickupWithApp
+                            'pickedup' => $pickup_with_app
                         ];
+                        $article_ordergroups[] = $current_ordergroup;
+                        $ordergroups[] = $current_ordergroup;
                     }
                     
                     $row_data[] = [
                         'article_name' => $article['name'],
                         'ordered' => $article_obj->ordered,
                         'received' => $article_obj->received, 
-                        'pickup_percent' => ($pickup ?? 0 > 0 ? round($pickup/$article_obj->received*100) : 0),
+                        'pickup_percent' => ($pickup ?? 0) > 0 ? round($pickup/$article_obj->received*100) : 0,
                         'pickup' => $pickup,
-                        'pickup_count' => $pickupWithAppCount,
-                        'grouporders_count' => count($article['grouporders'])
+                        'pickup_count' => $pickup_with_app_count,
+                        'grouporders_count' => count($article['grouporders']),
+                        'ordergroups' => $this->get_unique_ordergroups($article_ordergroups),
                     ];
                 }
-                
-                $ordergroups_by_name = [];
-                foreach ($ordergroups as $ordergroup) {
-                    $name = $ordergroup['name'];
-                    $ordergroups_by_name[$name] =
-                        ($ordergroups_by_name[$name] ?? true) && $ordergroup['pickedup'];
-                }
-                $ordergroups_unique = [];
-                foreach ($ordergroups_by_name as $name => $pickedup) {
-                    $ordergroups_unique[] = ['name' => $name, 'pickedup' => $pickedup];
-                }
+
+                // sort by article name (using poor mans intl collator replacement), articles not received last
+                $umlauts = ['ä' => 'a', 'ö' => 'o', 'ü' => 'u', 'ß' => 'ss'];
+                usort($row_data, function ($a, $b) use ($umlauts) {
+                    return [$a['received'] == 0, strtr(mb_strtolower($a['article_name']), $umlauts)]
+                        <=> [$b['received'] == 0, strtr(mb_strtolower($b['article_name']), $umlauts)];
+                });
 
                 $table_data[] = [
                     'order_name' => $order['name'],
                     'order_pickup' => $order['pickup'],
-                    'ordergroups' => $ordergroups_unique,
+                    'ordergroups' => $this->get_unique_ordergroups($ordergroups),
                     'articles' => $row_data
                 ];
             }
         }
         
-        print_table($table_data);
+        print_summary_table($table_data);
     }
 }
 ?>
