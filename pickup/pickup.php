@@ -56,7 +56,7 @@ class PickupApp extends FoodsoftApiApp
         $this->show_only_received_orders = $config["show_only_received_orders"] ?? false;
         $this->show_order_comments = $config["show_order_comments"] ?? false;
         $this->self_distribution = $config["self_distribution"] ?? false;
-        $this->show_summary_link = $config['show_summary_link'];
+        $this->show_summary_link = $config['show_summary_link'] ?? false;
 
         // print "<pre>pickup::construct config:";
         // print_r($config);
@@ -559,7 +559,7 @@ class PickupApp extends FoodsoftApiApp
                             $pickup += $group_order['received'];
                             $pickup_with_app_count += 1;
                         }
-                        
+ 
                         $current_ordergroup = [
                             'name' => $group_order['ordergroup_name'],
                             'pickedup' => $pickup_with_app
