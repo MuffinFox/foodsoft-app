@@ -628,6 +628,7 @@ class PickupApp extends FoodsoftApiApp
 
                 $table_data[] = [
                     'order_name' => $order['name'],
+                    'order_url' => $this->api->foodsoft_url . "/orders/" . $order['id'],
                     'order_pickup' => $order['pickup'],
                     'ordergroups' => $this->get_unique_ordergroups($ordergroups),
                     'articles' => $row_data

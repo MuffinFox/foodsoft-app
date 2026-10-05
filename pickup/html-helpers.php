@@ -436,6 +436,16 @@ function print_table_style()
         .pt-popover ul { list-style: none; margin: 0; padding: 0; }
         .pt-popover li { padding: 2px 0; }
         .pt-popover li.pt-pickedup { color: #1e8e3e; font-weight: 600; }
+        .pt-order-link {
+            position: relative;
+            display: inline-flex;
+            vertical-align: middle;
+            margin-left: 6px;
+            color: #555;
+        }
+        .pt-order-link:hover { color: #2f80ed; }
+        /* larger tap target on touch devices */
+        .pt-order-link::before { content: ''; position: absolute; inset: -10px; }
         .pt-order-date { font-size: 0.85rem; color: #666; }
         .pt-table {
             width: 100%;
@@ -567,6 +577,21 @@ function print_table_ordergroups_popover($ordergroups, $trigger_html = null, $al
         "</span>";
 }
 
+function print_table_order_link($url)
+{
+    // external link icon to the order in foodsoft
+    if (!$url) {
+        return "";
+    }
+    return "<a class='pt-order-link' href='" . htmlspecialchars($url, ENT_QUOTES, "UTF-8") . "' " .
+        "target='_blank' rel='noopener' title='Bestellung in Foodsoft öffnen' aria-label='Bestellung in Foodsoft öffnen'>" .
+        "<svg width='16' height='16' viewBox='0 0 16 16' aria-hidden='true' fill='none' stroke='currentColor' " .
+        "stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'>" .
+        "<path d='M9 2.5h4.5V7'/><path d='M13.5 2.5L7 9'/>" .
+        "<path d='M11.5 9.5v3a1 1 0 0 1-1 1h-7a1 1 0 0 1-1-1v-7a1 1 0 0 1 1-1h3'/>" .
+        "</svg></a>";
+}
+
 function print_table_header_group($keys)
 {
     // groups the trailing pickup_percent/pickup/pickup_count columns under a
@@ -680,7 +705,8 @@ function print_summary_table($sections)
         print "<div class='pt-section-header'>";
         print "<span class='pt-order-name'>" .
             print_table_ordergroups_popover($section["ordergroups"] ?? []) .
-            htmlspecialchars($section["order_name"] ?? "", ENT_QUOTES, "UTF-8") . "</span>";
+            htmlspecialchars($section["order_name"] ?? "", ENT_QUOTES, "UTF-8") .
+            print_table_order_link($section["order_url"] ?? "") . "</span>";
         if (!empty($section["order_pickup"])) {
             print "<span class='pt-order-date'>" . print_table_format_date($section["order_pickup"]) . "</span>";
         }
