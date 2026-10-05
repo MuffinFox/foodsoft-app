@@ -531,25 +531,31 @@ class PickupApp extends FoodsoftApiApp
 
     public function html_menu()
     {
-        // hamburger menu with a link to the pickup summary of all orders, if enabled
+        // hamburger menu with links to the pickup summary of all orders and the protocoll, if enabled
         if (!$this->show_summary_link) {
             return;
         }
-        $summary_url = "?" . http_build_query([
-            "app" => "pickup",
-            "action" => "summary",
-            "access_token" => $this->api->access_token,
-        ]);
-        print "<details class='app-menu'>" .
-            "<summary title='Menü' aria-label='Menü'><span></span><span></span><span></span></summary>" .
-            "<nav class='app-menu-dropdown'>" .
-            html_tag("a", [
-                "href" => $summary_url,
+        $links = [
+            "summary" => ["Abholungsübersicht", "Abholungsübersicht aller Bestellungen in neuem Fenster öffnen", []],
+            "protocoll" => ["Protokoll", "Protokoll der Abholungen in neuem Fenster öffnen", ["view" => "orders"]],
+        ];
+        $links_html = "";
+        foreach ($links as $action => [$label, $title, $params]) {
+            $links_html .= html_tag("a", [
+                "href" => "?" . http_build_query([
+                    "app" => "pickup",
+                    "action" => $action,
+                    ...$params,
+                    "access_token" => $this->api->access_token,
+                ]),
                 "target" => "_blank",
                 "rel" => "noopener",
-                "title" => "Abholungsübersicht aller Bestellungen in neuem Fenster öffnen",
-            ], "Abholungsübersicht") .
-            "</nav>" .
+                "title" => $title,
+            ], $label);
+        }
+        print "<details class='app-menu'>" .
+            "<summary title='Menü' aria-label='Menü'><span></span><span></span><span></span></summary>" .
+            "<nav class='app-menu-dropdown'>" . $links_html . "</nav>" .
             "</details>";
     }
 
@@ -560,6 +566,14 @@ class PickupApp extends FoodsoftApiApp
 
         // fetch all open orders
         $orders = $this->get_foodsoft_orders($order_id ? [$order_id] : null);
+
+        // sort by pickup date, earliest first, orders without pickup date last
+        usort($orders, function ($a, $b) {
+            $a_time = strtotime($a['pickup'] ?? '') ?: PHP_INT_MAX;
+            $b_time = strtotime($b['pickup'] ?? '') ?: PHP_INT_MAX;
+            return $a_time <=> $b_time;
+        });
+
         $table_data = [];
         foreach ($orders as $order) {
             if ($order['state'] != 'finished') {
