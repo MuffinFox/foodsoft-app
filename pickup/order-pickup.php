@@ -51,9 +51,9 @@ class OrderPickup extends Order
             "access_token" => $this->app->api->access_token,
         ]);
 
-        // deactivated for now
+        // show link to pickup summary if order already received and feature enabled 
         $summary_link = '';
-        if ($this->app->show_summary_link) {
+        if ($this->app->show_summary_link && $this->is_received) {
             $summary_link = html_tag("a", [
                 "class" => "summary-link",
                 "href" => $summary_url,
