@@ -103,12 +103,13 @@ class PickupApp extends FoodsoftApiApp
 
                 // html output
                 $this->html_header([
-                    "../pickup.js",
-                    "../input.js",
+                    "../pickup.js?v=2",
+                    "../input.js?v=2",
                 ], [
                     "onload" => "init()",
                     "onbeforeunload" => "return before_unload()",
                 ]);
+                $this->html_menu();
                 $this->html_title();
                 $this->html_pickup_form();
             } else {
@@ -526,6 +527,30 @@ class PickupApp extends FoodsoftApiApp
         }
 
         return $ordergroups_unique;
+    }
+
+    public function html_menu()
+    {
+        // hamburger menu with a link to the pickup summary of all orders, if enabled
+        if (!$this->show_summary_link) {
+            return;
+        }
+        $summary_url = "?" . http_build_query([
+            "app" => "pickup",
+            "action" => "summary",
+            "access_token" => $this->api->access_token,
+        ]);
+        print "<details class='app-menu'>" .
+            "<summary title='Menü' aria-label='Menü'><span></span><span></span><span></span></summary>" .
+            "<nav class='app-menu-dropdown'>" .
+            html_tag("a", [
+                "href" => $summary_url,
+                "target" => "_blank",
+                "rel" => "noopener",
+                "title" => "Abholungsübersicht aller Bestellungen in neuem Fenster öffnen",
+            ], "Abholungsübersicht") .
+            "</nav>" .
+            "</details>";
     }
 
     public function generate_summary_table(?int $order_id, ?int $article_id)

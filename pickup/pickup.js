@@ -180,6 +180,13 @@ document.addEventListener('pointerdown', function (event) {
     });
 });
 
+// close the hamburger menu when tapping outside of it
+document.addEventListener('pointerdown', function (event) {
+    document.querySelectorAll('.app-menu[open]').forEach(function (menu) {
+        if (!menu.contains(event.target)) menu.removeAttribute('open');
+    });
+});
+
 
 
 
