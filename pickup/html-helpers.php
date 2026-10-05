@@ -617,11 +617,12 @@ function print_table_keys($article)
 
 function print_table_progress_percent($articles)
 {
+    $articles_received = array_filter($articles, fn($article) => $article['received'] > 0);
     $total_pickedup_percent = 0;
-    foreach ($articles as $article) {
+    foreach ($articles_received as $article) {
         $total_pickedup_percent += $article["pickup_percent"] ?? 0;
     }
-    return $total_pickedup_percent > 0 ? round($total_pickedup_percent / count($articles)) : 0;
+    return $total_pickedup_percent > 0 ? round($total_pickedup_percent / count($articles_received)) : 0;
 }
 
 function print_article_row($article, $keys, $is_even = false)
