@@ -591,22 +591,28 @@ class PickupApp extends FoodsoftApiApp
                     $pickup = 0;
                     $pickup_with_app_count = 0;
                     $article_ordergroups = [];
+
                     foreach ($article['grouporders'] as $group_order) {
                         // if already picked up, only if articles received
                         $pickup_with_app = array_key_exists($group_order['id'], $this->articles_pickedup);
-                        if ($pickup_with_app && $group_order['received']) {
+
+                        if ($pickup_with_app) $pickup_with_app_count += 1;
+
+                        if ($group_order['received'] > 0) {
                             $pickup += $group_order['received'];
-                            $pickup_with_app_count += 1;
+                            $current_ordergroup = [
+                                'name' => $group_order['ordergroup_name'],
+                                'pickedup' => $pickup_with_app
+                            ];
+                            $article_ordergroups[] = $current_ordergroup;
+                            $ordergroups[] = $current_ordergroup;
+                        } else {
+                            $article_ordergroups[] =  [
+                                'name' => $group_order['ordergroup_name']." - 0 erhalten",
+                                'pickedup' => $pickup_with_app
+                            ];
                         }
- 
-                        $current_ordergroup = [
-                            'name' => $group_order['ordergroup_name'],
-                            'pickedup' => $pickup_with_app
-                        ];
-                        $article_ordergroups[] = $current_ordergroup;
-                        $ordergroups[] = $current_ordergroup;
                     }
-                    
                     $row_data[] = [
                         'article_name' => $article['name'],
                         'ordered' => $article_obj->ordered,
