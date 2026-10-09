@@ -596,10 +596,12 @@ class PickupApp extends FoodsoftApiApp
                         // if already picked up, only if articles received
                         $pickup_with_app = array_key_exists($group_order['id'], $this->articles_pickedup);
 
-                        if ($pickup_with_app) $pickup_with_app_count += 1;
+                        if ($pickup_with_app) {
+                            $pickup_with_app_count += 1;
+                            $pickup += $group_order['received'];
+                        }
 
                         if ($group_order['received'] > 0) {
-                            $pickup += $group_order['received'];
                             $current_ordergroup = [
                                 'name' => $group_order['ordergroup_name'],
                                 'pickedup' => $pickup_with_app
