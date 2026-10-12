@@ -44,7 +44,25 @@ class OrderPickup extends Order
         }
 
         $order_classes = "order $order_class" . ($has_comments ? " has-info-icon" : "");
-        print "<h3 class='$order_classes'>$comment_popover_html" . $this->producer . "</h3>";
+        $summary_url = "?" . http_build_query([
+            "app" => "pickup",
+            "action" => "summary",
+            "order_id" => $this->id,
+            "access_token" => $this->app->api->access_token,
+        ]);
+
+        // show link to pickup summary if order already received and feature enabled 
+        $summary_link = '';
+        if ($this->app->show_summary_link && $this->is_received) {
+            $summary_link = html_tag("a", [
+                "class" => "summary-link",
+                "href" => $summary_url,
+                "target" => "_blank",
+                "rel" => "noopener",
+                "title" => "Abholungsübersicht dieser Bestellung in neuem Fenster öffnen",
+            ], "Übersicht");
+        }
+        print "<h3 class='$order_classes'>$comment_popover_html" . $this->producer . " $summary_link</h3>";
         // print "<p>Status: $this->state, " .
         //     ($this->is_received ? "received" : "not received") . "," .
         //     ($this->app->show_only_received_orders ? "show only received" : "show all") .

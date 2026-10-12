@@ -142,6 +142,74 @@ ul li {
   max-width: 500px;
 }
 
+.app-menu {
+  position: absolute;
+  top: 21px;
+  right: 8px;
+  z-index: 20;
+  font-family: Ubuntu, sans-serif;
+}
+
+.app-menu > summary {
+  list-style: none; /* hide the disclosure triangle */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  width: 40px;
+  height: 40px;
+  padding: 0 9px;
+  box-sizing: border-box;
+  cursor: pointer;
+  border-radius: 6px;
+}
+
+.app-menu > summary::-webkit-details-marker {
+  display: none;
+}
+
+.app-menu > summary span {
+  display: block;
+  height: 3px;
+  background: #333;
+  border-radius: 2px;
+}
+
+.app-menu[open] > summary {
+  background: #eee;
+}
+
+.app-menu-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  min-width: 200px;
+  background: white;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  padding: 4px 0;
+}
+
+.app-menu-dropdown a {
+  display: block;
+  padding: 10px 14px;
+  white-space: nowrap;
+}
+
+.app-menu-dropdown a:hover {
+  background: #f4f4f4;
+}
+
+.summary-link {
+  font-family: Ubuntu, sans-serif;
+  font-size: 0.7em;
+  font-weight: 300;
+  margin-left: 0.5em;
+  white-space: nowrap;
+}
+
 .comment-popover ul {
   list-style: none;
   margin: 0;
