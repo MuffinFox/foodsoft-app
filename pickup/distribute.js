@@ -386,10 +386,14 @@ function process_ajax_response(response, my_session_id) {
     else {
         window.n_ajax_empy_responses = 0;
     }
+    if (my_session_id) {
+        window.n_ajax_events += events.length;
+    }
     // page_log("process_ajax_response: n events: " + n + " n_ajax_empy_responses: " + window.n_ajax_empy_responses + "\n");
     // console.log("process_ajax_response: events: " + events.length + "\n" + response);
     let i = 0;
     for (const event of events) {
+        // console.log("event: " + event);
         const d = JSON.parse(event);
 
         // element of d used here: 
@@ -436,9 +440,6 @@ function process_ajax_response(response, my_session_id) {
                 }
             }
             else console.log("getElementById failed with " + d.element_id);
-        }
-        if (my_session_id) {
-            window.n_ajax_events += events.length;
         }
     }
     if (my_session_id == null) {
