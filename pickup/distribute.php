@@ -10,6 +10,7 @@ class DistributeApp extends FoodsoftApiApp
     public $edit_received;
     public $ajax_timeout = 100;
     public $index;
+    public $show_order_comments = false; // not implemented yet, if needed: see pickup.php: get from config
 
 
     public function needs_api()
