@@ -21,7 +21,10 @@ class ArticlePickup extends Article
         $this->grouporder_article_id = $data["grouporder_article_id"] ?? null; # 216734
         $this->ordered_total = $data["ordered_total"] ?? null; # [] => 3
         $this->received_total = $data["received_total"] ?? null; #  [] => 
-        $this->article_grouporder_ids = $this->app->article_grouporder_ids[$this->grouporder_article_id] ?? [];
+        // PHP 8.5 deprecates null as array offset
+        $this->article_grouporder_ids = $this->grouporder_article_id !== null
+            ? ($this->app->article_grouporder_ids[$this->grouporder_article_id] ?? [])
+            : [];
 
         $this->set_state();
         $this->has_variable_weight = str_contains(
