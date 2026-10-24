@@ -103,7 +103,7 @@ class PickupApp extends FoodsoftApiApp
 
                 // html output
                 $this->html_header([
-                    "../pickup.js?v=2",
+                    "../pickup.js?v=3",
                     "../input.js?v=2",
                 ], [
                     "onload" => "init()",
@@ -553,6 +553,7 @@ class PickupApp extends FoodsoftApiApp
                 "title" => $title,
             ], $label);
         }
+        $links_html .= "<hr>" . html_tag("a", ["href" => $this->api->foodsoft_url . "/logout", "target" => "_blank", "onclick" => "reload_on_return()"], "Abmelden");
         print "<details class='app-menu'>" .
             "<summary title='Menü' aria-label='Menü'><span></span><span></span><span></span></summary>" .
             "<nav class='app-menu-dropdown'>" . $links_html . "</nav>" .

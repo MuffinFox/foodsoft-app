@@ -190,3 +190,11 @@ document.addEventListener('pointerdown', function (event) {
 
 
 
+// after logout in a new tab: reload when the user comes back, the dead token then leads to the foodsoft login
+function reload_on_return() {
+    document.addEventListener('visibilitychange', function () {
+        if (document.visibilityState !== 'visible') return;
+        window.onbeforeunload = null;
+        location.reload();
+    });
+}
